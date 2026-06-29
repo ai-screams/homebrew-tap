@@ -10,7 +10,7 @@ cask "azimuth" do
 
   # Azimuth updates itself via Sparkle — let it, so brew doesn't fight the in-app updater.
   auto_updates true
-  depends_on macos: ">= :sequoia" # safe floor; the app enforces its real minimum (macOS 26.3) at launch
+  depends_on macos: :sequoia # safe floor; the app enforces its real minimum (macOS 26.3) at launch
 
   app "Azimuth.app"
 
