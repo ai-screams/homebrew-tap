@@ -20,4 +20,4 @@ Updates are handled in-app by [Sparkle](https://sparkle-project.org) (`auto_upda
 `brew upgrade` won't fight the built-in updater — Azimuth keeps itself current.
 
 - App & releases: https://github.com/ai-screams/Azimuth
-- Homepage: https://ai-screams.github.io/Azimuth/
+- Homepage: https://ai-scream.ai/Azimuth/
