@@ -21,3 +21,10 @@ Updates are handled in-app by [Sparkle](https://sparkle-project.org) (`auto_upda
 
 - App & releases: https://github.com/ai-screams/Azimuth
 - Homepage: https://ai-scream.ai/Azimuth/
+
+## Maintenance
+
+`.github/workflows/bump-casks.yml` checks each app's latest GitHub release every six hours (or on
+demand from the Actions tab) and opens a PR that updates the cask's `version` and `sha256`. The
+hash is taken from the release's `.dmg.sha256` file and checked against the downloaded DMG. To
+add a cask, add a `matrix.include` entry.

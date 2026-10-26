@@ -1,0 +1,66 @@
+# Opens a PR when an app in this tap has a newer GitHub release than its cask.
+# Runs on a schedule so the app repos need no token for this repo; the app's own
+# updater (Sparkle) keeps installed copies current, so a few hours' lag only affects
+# new installs. repository_dispatch (type `bump-casks`) lets a release trigger it later.
+name: bump casks
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [bump-casks]
+
+permissions:
+  contents: write # push the bump branch
+  pull-requests: write # open the PR
+
+concurrency:
+  group: bump-casks
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cask: azimuth
+            repo: ai-screams/Azimuth
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }} # a manual run from another branch must not carry its commits
+
+      - name: Update the cask
+        id: bump
+        run: bash scripts/bump-cask.sh "Casks/${{ matrix.cask }}.rb" "${{ matrix.repo }}"
+
+      - name: Open a PR
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          CASK: ${{ matrix.cask }}
+          VERSION: ${{ steps.bump.outputs.version }}
+          REPO: ${{ matrix.repo }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          branch="bump/$CASK-$VERSION"
+          body="Updates \`Casks/$CASK.rb\` to [$VERSION](https://github.com/$REPO/releases/tag/v$VERSION). The sha256 is the release's \`.sha256\` file, checked against the downloaded DMG."
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            # A PR in any state (open, merged, closed by a person) means this version was handled.
+            # A branch without one means an earlier run pushed but failed to open the PR.
+            if [[ -n $(gh pr list --head "$branch" --state all --json number --jq '.[].number') ]]; then
+              echo "$branch already has a PR; leaving it"
+              exit 0
+            fi
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git switch -c "$branch"
+            git commit -am "$CASK $VERSION"
+            git push origin "$branch"
+          fi
+          gh pr create --base "$BASE" --head "$branch" --title "$CASK $VERSION" --body "$body"
